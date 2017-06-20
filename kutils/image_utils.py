@@ -78,7 +78,7 @@ def crop_shortest(im):
 
 
 
-def resize_crop_dir(orig_root, im_size=(256, 256), suffix='_rs'):
+def resize_crop_dir(orig_root, im_size=(256, 256), suffix='_rs', resample=Image.LANCZOS):
     rs_root = orig_root + suffix
 
     def makefile_or_whatever(f):
@@ -93,16 +93,14 @@ def resize_crop_dir(orig_root, im_size=(256, 256), suffix='_rs'):
         if not d.startswith('.'):
             p,_, im_files = next(os.walk(os.path.join(orig_root, d))) 
             print('resizing {} images from {} to {}'.format(len(im_files), p, orig_to_rs(p)))
-
             for i, imfile in enumerate(im_files):
                 if imfile.endswith('.jpg'):
-                    
                     f = os.path.join(p, imfile)
                     if not os.path.exists(orig_to_rs(f)):
                         try:
                             im = Image.open(f)
                             imx = crop_shortest(im)
-                            imx = imx.resize(im_size, resample=Image.LANCZOS)
+                            imx = imx.resize(im_size, resample=resample)
                             try:
                                 makefile_or_whatever(lambda : imx.save(orig_to_rs(f), 'jpeg'))
                             except OSError:
