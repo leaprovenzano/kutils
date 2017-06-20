@@ -1,6 +1,10 @@
 from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.layers.normalization import BatchNormalization
 from keras.layers import Activation, Dense, Input, Dropout
+from keras import backend as K
+
+# check backend for batch normalization axis.
+BN_AXIS = -1 if K.image_data_format is 'channels_last' else 1
 
 
 def dense_bn(units, activation='relu', bn=True, **kwargs):
@@ -9,7 +13,7 @@ def dense_bn(units, activation='relu', bn=True, **kwargs):
         x = Dense(size)(inp)
         #hacky exclude batchnorm if elu
         if bn & activation is not 'elu':
-            x = BatchNormalization(scale=False)(x)
+            x = BatchNormalization(scale=False, axis=BN_AXIS)(x)
         #hacky check for advanced activation layers like prelu
         if type(activation) is not str:
             x = activation()(x)
@@ -41,7 +45,7 @@ def conv2d_bn(filters, kernal_size, padding='same', strides= 1, activation='relu
         x = Conv2D(filters, kernal_size, padding=padding, strides= strides, **kwargs)(inp)
         # if activation is elu skip bn
         if activation is not 'elu':
-            x = BatchNormalization(scale=False)(x)
+            x = BatchNormalization(scale=False, axis=BN_AXIS)(x)
         #hacky check for advanced activation layers like prelu
         if type(activation) is not str:
             x = activation()(x)
