@@ -3,6 +3,8 @@ from keras.layers.normalization import BatchNormalization
 from keras.layers import Activation, Dense, Input, Dropout, GlobalAveragePooling2D, GlobalMaxPooling2D, Flatten
 from keras.layers.merge import Concatenate
 from keras import backend as K
+import numpy as np
+
 
 
 class Block(object):
@@ -71,7 +73,7 @@ class ConvBlock(Block):
         on a tensor of shape (None, 64, 64, 128) will result in a tensor of
         shape (None, 64, 64, 64) floor division is used."""
         def block(inp):
-            filters = inp.shape.as_list()[self.channel_axis] // pool_filters
+            filters = int(inp.shape.as_list()[self.channel_axis] // pool_filters)
             x = self.conv2d_unit(filters, kernal_size=1,
                                  padding='same', strides=1, **kwargs)(inp)
             return x
@@ -107,73 +109,86 @@ class ConvBlock(Block):
 
     # inception blocks ------
 
-    def block_inceptionish_c(self, **kwargs):
+    def block_inceptionish_c(self, grow=False, **kwargs):
 
         def block(inp):
-            inp_filters = inp.shape.as_list()[self.channel_axis]
+            d = inp.shape.as_list()[self.channel_axis]
+
+            fr = np.array([4, 8, 3.425, 3], 'float32')
+            if grow:
+                fr /=2
 
             b1 = AveragePooling2D((3, 3), strides=(1, 1), padding='same')(inp)
-            b1 = self.conv_depth_pool(pool_filters=6, **kwargs)(b1)
+            b1 = self.conv_depth_pool(pool_filters=fr[0], **kwargs)(b1)
 
-            b2 = self.conv_depth_pool(pool_filters=6, **kwargs)(inp)
+            b2 = self.conv_depth_pool(pool_filters=fr[0], **kwargs)(inp)
 
-            b3 = self.conv_depth_pool(pool_filters=4, **kwargs)(inp)
-            b3_1 = self.conv2d_unit(inp_filters // 6, (1, 3), **kwargs)(b3)
-            b3_2 = self.conv2d_unit(inp_filters // 6, (3, 1), **kwargs)(b3)
+            b3 = self.conv_depth_pool(pool_filters=fr[0], **kwargs)(inp)
+            b3_1 = self.conv2d_unit(int(d // fr[1]), (1, 3), **kwargs)(b3)
+            b3_2 = self.conv2d_unit(int(d // fr[1]), (3, 1), **kwargs)(b3)
             b3 = Concatenate(axis=self.channel_axis)([b3_1, b3_2])
 
-            b4 = self.conv_depth_pool(pool_filters=4)(inp)
-            b4 = self.conv2d_unit(inp_filters // 3.425, (1, 3), **kwargs)(b4)
-            b4 = self.conv2d_unit(inp_filters // 3, (3, 1), **kwargs)(b4)
-            b4_1 = self.conv2d_unit(inp_filters // 6, (1, 3), **kwargs)(b4)
-            b4_2 = self.conv2d_unit(inp_filters // 6, (3, 1), **kwargs)(b4)
+            b4 = self.conv_depth_pool(pool_filters=fr[0])(inp)
+            b4 = self.conv2d_unit(int(d // fr[2]), (1, 3), **kwargs)(b4)
+            b4 = self.conv2d_unit(int(d // fr[3]), (3, 1), **kwargs)(b4)
+            b4_1 = self.conv2d_unit(int(d // fr[1]), (1, 3), **kwargs)(b4)
+            b4_2 = self.conv2d_unit(int(d // fr[1]), (3, 1), **kwargs)(b4)
             b4 = Concatenate(axis=self.channel_axis)([b4_1, b4_2])
 
             x = Concatenate(axis=self.channel_axis)([b1, b2, b3, b4])
             return x
         return block
 
-    def block_inceptionish_b(self, **kwargs):
+    def block_inceptionish_b(self, grow=False, **kwargs):
 
         def block(inp):
             d = inp.shape.as_list()[self.channel_axis]
+            fr = np.array([4, 6, 5.3333, 4.5666], 'float32')
+            if grow:
+                fr /=2
 
             b1 = AveragePooling2D((3, 3), strides=(1, 1), padding='same')(inp)
-            b1 = self.conv_depth_pool(pool_filters=8, **kwargs)(b1)
+            b1 = self.conv_depth_pool(pool_filters=fr[0], **kwargs)(b1)
 
-            b2 = self.conv_depth_pool(pool_filters=2.6666, **kwargs)(inp)
+            b2 = self.conv_depth_pool(pool_filters=fr[0], **kwargs)(inp)
 
-            b3 = self.conv_depth_pool(pool_filters=5.3333, **kwargs)(inp)
-            b3 = self.conv2d_unit(d // 4.5666, (1, 7), **kwargs)(b3)
-            b3 = self.conv2d_unit(d // 4, (7, 1), **kwargs)(b3)
+            b3 = self.conv_depth_pool(pool_filters=fr[2], **kwargs)(inp)
+            b3 = self.conv2d_unit(int(d // fr[3]), (1, 7), **kwargs)(b3)
+            b3 = self.conv2d_unit(int(d // fr[0]), (7, 1), **kwargs)(b3)
 
-            b4 = self.conv_depth_pool(pool_filters=5.3333, **kwargs)(inp)
-            b4 = self.conv2d_unit(d // 5.3333, (1, 7), **kwargs)(b4)
-            b4 = self.conv2d_unit(d // 4.5666, (7, 1), **kwargs)(b4)
+            b4 = self.conv_depth_pool(pool_filters=fr[2], **kwargs)(inp)
+            b4 = self.conv2d_unit(int(d // fr[2]), (1, 7), **kwargs)(b4)
+            b4 = self.conv2d_unit(int(d // fr[3]), (7, 1), **kwargs)(b4)
 
-            b4 = self.conv2d_unit(d // 4.5666, (1, 7), **kwargs)(b4)
-            b4 = self.conv2d_unit(d // 4, (7, 1), **kwargs)(b4)
+            b4 = self.conv2d_unit(int(d // fr[3]), (1, 7), **kwargs)(b4)
+            b4 = self.conv2d_unit(int(d // fr[0]), (7, 1), **kwargs)(b4)
 
             x = Concatenate(axis=self.channel_axis)([b1, b2, b3, b4])
-
+            return x
         return block
 
-    def block_inceptionish_a(self, **kwargs):
+
+    def block_inceptionish_a(self, grow=False, **kwargs):
 
         def block(inp):
             d = inp.shape.as_list()[self.channel_axis]
+            fr = np.array([4, 6], 'float32')
+            if grow:
+                fr /=2
+            
+
 
             b1 = AveragePooling2D((3, 3), strides=(1, 1), padding='same')(inp)
-            b1 = self.conv_depth_pool(pool_filters=4, **kwargs)(b1)
+            b1 = self.conv_depth_pool(pool_filters=fr[0], **kwargs)(b1)
 
-            b2 = self.conv_depth_pool(pool_filters=4, **kwargs)(inp)
+            b2 = self.conv_depth_pool(pool_filters=fr[0], **kwargs)(inp)
 
-            b3 = self.conv_depth_pool(pool_filters=6, **kwargs)(inp)
-            b3 = self.conv2d_unit(d // 4, (3, 3), **kwargs)(b3)
+            b3 = self.conv_depth_pool(pool_filters=fr[1], **kwargs)(inp)
+            b3 = self.conv2d_unit(int(d// fr[0]), (3, 3), **kwargs)(b3)
 
-            b4 = self.conv_depth_pool(pool_filters=6)(inp)
-            b4 = self.conv2d_unit(d // 4, (3, 3), **kwargs)(b4)
-            b4 = self.conv2d_unit(d // 4, (3, 3), **kwargs)(b4)
+            b4 = self.conv_depth_pool(pool_filters=fr[1])(inp)
+            b4 = self.conv2d_unit(int(d // fr[0]), (3, 3), **kwargs)(b4)
+            b4 = self.conv2d_unit(int(d // fr[0]), (3, 3), **kwargs)(b4)
 
             x = Concatenate(axis=self.channel_axis)([b1, b2, b3, b4])
 
@@ -236,3 +251,5 @@ class DenseBlock(Block):
 
             return x
         return block
+
+
