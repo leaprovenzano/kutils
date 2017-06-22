@@ -1,7 +1,7 @@
 from keras.layers.convolutional import Conv2D, MaxPooling2D, AveragePooling2D
 from keras.layers.normalization import BatchNormalization
 from keras.layers import Activation, Dense, Input, Dropout, GlobalAveragePooling2D, GlobalMaxPooling2D, Flatten
-from keras.layers.merge import Concatenate
+from keras.layers.merge import Concatenate, Add
 from keras import backend as K
 import numpy as np
 
@@ -15,9 +15,7 @@ class Block(object):
 
     def __init__(self, activation='relu', batch_norm=True):
         self._activation = activation
-
-        # exclude batch norm for elu activations
-        self.batch_norm = all((batch_norm,  (self._activation != 'elu')))
+        self.batch_norm = batch_norm
 
     def activation(self):
         # a hacky check for advanced activations
@@ -37,12 +35,14 @@ class ConvBlock(Block):
                            'strided': self.conv_width_pool,
                            'depthwise': self.conv_depth_pool}
 
-    def conv2d_unit(self, filters, kernal_size=(3, 3), padding='same', strides=1, **kwargs):
+    def conv2d_unit(self, filters, kernal_size=(3, 3), padding='same', strides=1, skip_activation=False, **kwargs):
         if type(kernal_size) is int:
             kernal_size = (kernal_size, kernal_size)
         def block(inp):
             x = Conv2D(filters, kernal_size, padding=padding,
                        strides=strides, **kwargs)(inp)
+            if skip_activation:
+                return x
             if self.batch_norm:
                 x = BatchNormalization(scale=False, axis=self.channel_axis)(x)
             x = self.activation()(x)
@@ -79,7 +79,7 @@ class ConvBlock(Block):
             return x
         return block
 
-    def conv_block(self, filters, kernel_size=3, n_layers=2, padding='same', strides=1, drop=0., pool=2, pool_type='max', pool_pre_drop=False, factorized=False, **kwargs):
+    def conv_block(self, filters, kernel_size=3, n_layers=2, padding='same', strides=1, drop=0., pool=0, pool_type='max', pool_pre_drop=False, factorized=False, **kwargs):
         """a block of n_layer convolutions followed by a pool layer & dropout (if drop is povided)
         note that if you want if pool is "depthwise" the pool argument should represent ether number of filters or
         """
@@ -101,6 +101,39 @@ class ConvBlock(Block):
             if drop:
                 x = Dropout(drop)(x)
 
+            if pool and not pool_pre_drop:
+                x = self.pool_types[pool_type](pool)(x)
+            return x
+
+        return block
+
+
+
+    def residual_block(self, filters, kernel_size=3, n_layers=3, padding='same', strides=1, drop=0., pool=0, pool_type='max', pool_pre_drop=False, factorized=False, **kwargs):
+
+        def block(inp):
+            if inp.shape.as_list()[self.channel_axis] == filters:
+                skip, x = inp, inp
+
+            else:
+                skip, x = self.conv2d_unit(filters, kernel_size, padding=padding,
+                            strides=strides, **kwargs)(inp)
+            for n in range(n_layers-1):
+                x = self.conv2d_unit(filters, kernel_size, padding=padding,
+                            strides=strides, **kwargs)(x)
+
+            x = self.conv2d_unit(filters, kernel_size, padding=padding,
+                            strides=strides, skip_activation=True, **kwargs)(x)
+
+            x = Add()([skip, x])
+            if self.batch_norm:
+                x = BatchNormalization(axis=self.channel_axis)(x)
+            x = self.activation()(x)
+
+            if pool and pool_pre_drop:
+                x = self.pool_types[pool_type](pool)(x)
+            if drop:
+                x = Dropout(drop)(x)
             if pool and not pool_pre_drop:
                 x = self.pool_types[pool_type](pool)(x)
             return x
@@ -194,6 +227,54 @@ class ConvBlock(Block):
 
             return x
         return block
+
+
+def inceptionish_stem(self):
+    """a version of the inception v4 stem, but
+    without the valid padding."""
+    def block(inp):
+
+        x = self.conv2d_unit(32, 3, strides=2 )(inp)
+        x = self.conv2d_unit(32, 3)(x)
+        x = self.conv2d_unit(64, 3)(x)
+
+        x1 = MaxPooling2D((2, 2), strides=2)(x)
+        x2 = self.conv2d_unit(96, 3, strides=2)(x)
+
+        x = Concatenate(axis=self.channel_axis)([x1, x2])
+
+        x1 = self.conv_block(64, 1)(x)
+        x1 = self.conv2d_unit( 96, 3)(x1)
+
+        x2 = self.conv2d_unit(64, 1)(x)
+        x2 = self.factorized_conv(64, 7)(x2)
+        x2 = self.conv2d_unit(96, 3)(x2)
+
+        x = Concatenate(axis=self.channel_axis)([x1, x2])
+
+        x1 = self.conv2d_unit(192, 3, strides=2)(x)
+        x2 = MaxPooling2D((2, 2), strides=2)(x)
+
+        x = Concatenate(axis=self.channel_axis)([x1, x2])
+        return x
+    return block
+
+
+def inceptionish_reduction_b(self):
+    """version of inception v4 reduction block B"""
+    def block(inp):
+        x1 = self.conv2d_unit(128, 1)(inp)
+        x1 = self.conv2d_unit(128, 3, strides=2)(x1)
+
+        x2 = self.conv2d_unit(256, 1)(inp)
+        x2 = self.factorized_conv(320, 7)(x2)
+        x2 = self.conv2d_unit(256, 1, strides=2)(x2)
+
+        x3 = MaxPooling2D((2, 2), strides=2, padding='valid')(inp)
+
+        x = Concatenate(axis=self.channel_axis)([x1, x2, x3])
+        return x
+    return block
 
 
 
