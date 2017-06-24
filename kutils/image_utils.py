@@ -1,6 +1,28 @@
 from PIL import Image
 import os, sys
 
+class ImageBatchGenerator(object):
+    """given a tied image and labelgenerator 
+    generates from both, good for multi labeled 
+    images that are not split into class directories
+    """
+    def __init__(self, imgen, labelgen):
+        self.imgen = imgen
+        self.labelgen = labelgen
+        self.n = self.imgen.n
+        self.batch_size = self.imgen.batch_size
+        
+    def reset():
+        self.imgen.reset()
+        self.labelgen.reset()
+    
+    def __next__(self):
+        return self.next()
+
+    def next(self):
+        while True:
+            return self.imgen.next(), self.labelgen.next()[1] 
+
 
 
 class ImageScaler(object):
