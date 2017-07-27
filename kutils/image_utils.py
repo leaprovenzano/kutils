@@ -124,7 +124,7 @@ def crop_shortest(im):
     return im.crop((left, top, right, bottom))
 
 
-def resize_dir(orig_root, im_size=(256, 256), suffix='_resized', crop=False, prog_bar=None):
+def resize_dir(orig_root, im_size=(256, 256), suffix='_resized', crop=None, prog_bar=None):
     """given some directory of images, make a new directory containing resized
     versions of those images. 
     
@@ -152,7 +152,7 @@ def resize_dir(orig_root, im_size=(256, 256), suffix='_resized', crop=False, pro
             
             f_iter = enumerate(im_files)
             if prog_bar:
-                f_iter = f_iter(prog_bar)
+                f_iter = prog_bar(f_iter)
             for i, imfile in f_iter:
                 if imfile.endswith('.jpg'):
                     f = os.path.join(p, imfile)
@@ -160,7 +160,7 @@ def resize_dir(orig_root, im_size=(256, 256), suffix='_resized', crop=False, pro
                         try:
                             im = Image.open(f)
                             if crop:
-                                imx = crop_shortest(im)
+                                imx = crop(im)
                             else:
                                 imx = im
                             imx = imx.resize(im_size, resample=Image.LANCZOS)
