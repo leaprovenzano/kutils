@@ -86,33 +86,7 @@ class ConvBlock(Block):
             return x
         return block
 
-    # def conv_block(self, filters, kernel_size=3, n_layers=2, padding='same', strides=1, drop=0., pool=0, pool_type='max', pool_pre_drop=False, factorized=False, **kwargs):
-    #     """a block of n_layer convolutions followed by a pool layer & dropout (if drop is povided)
-    #     note that if you want if pool is "depthwise" the pool argument should represent ether number of filters or
-    #     """
-    #     if factorized:
-    #         builder = self.factorized_conv
-    #     else:
-    #         builder = self.conv2d_unit
 
-    #     def block(inp):
-    #         x = builder(filters, kernel_size, padding=padding,
-    #                     strides=strides, drop=drop, **kwargs)(inp)
-    #         for n in range(n_layers - 1):
-    #             x = builder(filters, kernel_size, padding=padding,
-    #                         strides=strides, drop=drop, **kwargs)(x)
-
-    #         if pool and pool_pre_drop:
-    #             x = self.pool_types[pool_type](pool)(x)
-
-    #         if drop:
-    #             x = self.dropout(drop)(x)
-
-    #         if pool and not pool_pre_drop:
-    #             x = self.pool_types[pool_type](pool)(x)
-    #         return x
-
-    #     return block
 
     def conv_block(self, filters, kernel_size=3, n_layers=2, padding='same', strides=1, drop=0., factorized=False, **kwargs):
         """a block of n_layer convolutions followed by a pool layer & dropout (if drop is povided)

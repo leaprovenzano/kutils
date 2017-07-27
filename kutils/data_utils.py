@@ -1,4 +1,7 @@
+from math import ceil
+
 import numpy as np 
+
 
 
 def split_byc(X, Y, split=.2):

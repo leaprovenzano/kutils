@@ -1,4 +1,4 @@
-from keras import backend as k
+from keras import backend as K
 
 
 def d_precision(y_true, y_pred):
@@ -32,3 +32,10 @@ def d_fbeta_score(y_true, y_pred, beta=1):
     bb = beta ** 2
     fbeta_score = (1 + bb) * (p * r) / (bb * p + r + K.epsilon())
     return fbeta_score
+
+
+def dice_coef(y_true, y_pred):
+    intersection = K.sum(K.flatten(y_true) * K.flatten(y_pred), axis=[0, 1, 2])
+    return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
+
+
