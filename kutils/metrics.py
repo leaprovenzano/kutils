@@ -34,6 +34,11 @@ def d_fbeta_score(y_true, y_pred, beta=1):
     return fbeta_score
 
 
-def dice_coef(y_true, y_pred):
-    intersection = K.sum(K.flatten(y_true) * K.flatten(y_pred), axis=[0, 1, 2])
+def dice_coef(y_true, y_pred, smooth=.000001):
+    y_true_f = K.flatten(y_true)
+    y_pred_f =K.flatten(y_pred)
+    intersection = K.sum(y_true_f * y_pred_f, axis=-1)
     return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f) + smooth)
+
+
+    

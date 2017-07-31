@@ -154,23 +154,23 @@ def resize_dir(orig_root, im_size=(256, 256), suffix='_resized', crop=None, prog
             if prog_bar:
                 f_iter = prog_bar(f_iter)
             for i, imfile in f_iter:
-                if imfile.endswith('.jpg'):
-                    f = os.path.join(p, imfile)
-                    if not os.path.exists(orig_to_rs(f)):
+                f = os.path.join(p, imfile)
+                if not os.path.exists(orig_to_rs(f)):
+                    try:
+                        im = Image.open(f)
+                        if crop:
+                            imx = crop(im)
+                        else:
+                            imx = im
+                        imx = imx.resize(im_size, resample=Image.LANCZOS)
                         try:
-                            im = Image.open(f)
-                            if crop:
-                                imx = crop(im)
-                            else:
-                                imx = im
-                            imx = imx.resize(im_size, resample=Image.LANCZOS)
-                            try:
-                                makefile_or_whatever(
-                                    lambda: imx.save(orig_to_rs(f), 'jpeg'))
-                            except OSError:
-                                makefile_or_whatever(lambda: os.mkdir(
-                                    orig_to_rs(f)[:orig_to_rs(f).rfind('/')]))
-                                makefile_or_whatever(
-                                    lambda: imx.save(orig_to_rs(f), 'jpeg'))
+                            makefile_or_whatever(
+                                lambda: imx.save(orig_to_rs(f)))
                         except OSError:
-                            pass
+                            makefile_or_whatever(lambda: os.mkdir(
+                                orig_to_rs(f)[:orig_to_rs(f).rfind('/')]))
+                            makefile_or_whatever(
+                                lambda: imx.save(orig_to_rs(f)))
+                    except OSError:
+                        pass
+
