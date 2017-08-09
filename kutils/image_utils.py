@@ -124,7 +124,7 @@ def crop_shortest(im):
     return im.crop((left, top, right, bottom))
 
 
-def resize_dir(orig_root, im_size=(256, 256), suffix='_resized', crop=None, prog_bar=None):
+def resize_dir(orig_root, im_size=(256, 256), suffix='_resized', crop=None, prog_bar=None, quality=90):
     """given some directory of images, make a new directory containing resized
     versions of those images. 
     
@@ -165,12 +165,18 @@ def resize_dir(orig_root, im_size=(256, 256), suffix='_resized', crop=None, prog
                         imx = imx.resize(im_size, resample=Image.LANCZOS)
                         try:
                             makefile_or_whatever(
-                                lambda: imx.save(orig_to_rs(f)))
+                                lambda: imx.save(orig_to_rs(f), quality=quality))
                         except OSError:
                             makefile_or_whatever(lambda: os.mkdir(
                                 orig_to_rs(f)[:orig_to_rs(f).rfind('/')]))
                             makefile_or_whatever(
-                                lambda: imx.save(orig_to_rs(f)))
+                                lambda: imx.save(orig_to_rs(f), quality=quality))
                     except OSError:
                         pass
 
+class ClassName(object):
+    """docstring for ClassName"""
+    def __init__(self, arg):
+        super(ClassName, self).__init__()
+        self.arg = arg
+        
