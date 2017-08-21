@@ -39,6 +39,7 @@ class ConvBlock(Block):
     def conv2d_unit(self, filters, kernal_size=(3, 3), padding='same', strides=1, skip_activation=False, drop=0., **kwargs):
         if type(kernal_size) is int:
             kernal_size = (kernal_size, kernal_size)
+
         def block(inp):
             x = Conv2D(filters, kernal_size, padding=padding,
                        strides=strides, kernel_initializer=self.kernal_init, **kwargs)(inp)
